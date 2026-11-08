@@ -20,7 +20,11 @@ header button{background:none;border:0;font-size:40px;line-height:1;color:var(--
 #lives{display:flex;gap:10px}
 .drop{width:24px;height:32px;background:var(--drop);border-radius:50% 50% 50% 50%/65% 65% 38% 38%;transition:.3s}
 .drop.off{opacity:.15;transform:scale(.7)}
-#hint{background:none;border:0;font-size:30px;cursor:pointer}
+#tools{display:flex;align-items:center;gap:6px}
+#hint,#dots{background:none;border:0;font-size:30px;cursor:pointer;color:var(--ink);padding:0 6px}
+#dots span{font-size:26px;font-weight:900;letter-spacing:-2px;position:relative}
+#dots.off span{opacity:.4}
+#dots.off span:after{content:'';position:absolute;left:-3px;right:-3px;top:50%;border-top:3px solid var(--bad);transform:rotate(-20deg)}
 main{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:8px 12px 16px}
 #board{width:min(100%,560px);height:auto;max-height:100%;touch-action:manipulation;overflow:visible}
 @supports (height:100dvh){html,body{height:100dvh}}
@@ -30,6 +34,7 @@ main{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;
 .hit{fill:none;stroke:transparent;stroke-width:7;stroke-linecap:round;stroke-linejoin:round}
 g.bad .a{stroke:var(--bad)}g.bad .h{fill:var(--bad)}
 g.hint .a{stroke:#3a9d5d}g.hint .h{fill:#3a9d5d}
+g .dot{fill:var(--ink);opacity:.5;pointer-events:none}
 g.shake{animation:sh .3s}
 @keyframes sh{25%{transform:translate(-1px,0)}75%{transform:translate(1px,0)}}
 #msg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:5}
@@ -44,7 +49,7 @@ g.shake{animation:sh .3s}
   <div class="title"><b id="lvl">Nível 1</b><span id="diff">Fácil</span></div>
   <button id="next" aria-label="Próximo nível">›</button>
 </header>
-<div class="bar"><div id="lives"></div><button id="hint" aria-label="Dica">💡</button></div>
+<div class="bar"><div id="lives"></div><div id="tools"><button id="dots" aria-label="Ativar ou desativar pontinhos" title="Pontinhos"><span>•••</span></button><button id="hint" aria-label="Dica">💡</button></div></div>
 <main><svg id="board" xmlns="http://www.w3.org/2000/svg"></svg></main>
 <div id="msg" class="hidden"><div><h2 id="mt"></h2><button id="mb"></button></div></div>
 <script>
@@ -83,6 +88,7 @@ function gerar(level){
         var h=last(cells),ray=[],x=h[0]+D[dir][0],y=h[1]+D[dir][1],bad=false;
         while(x>=0&&y>=0&&x<n&&y<n){if(own[key(x,y)])bad=true;ray.push(key(x,y));x+=D[dir][0];y+=D[dir][1];}
         if(bad)continue;
+        if(k>=1&&t<100&&(used[ray[0]]||!ray.some(function(c){return used[c];})))continue;
         cells.forEach(function(c){used[key(c[0],c[1])]=1;});ray.forEach(function(c){rays[c]=1;});
         arrows.push({cells:cells,dir:dir,ray:ray});break;
       }
@@ -123,6 +129,7 @@ function draw(a,P){
   a.hd.setAttribute('points',tip+' '+(b[0]-dy*2.6)+','+(b[1]+dx*2.6)+' '+(b[0]+dy*2.6)+','+(b[1]-dx*2.6));
 }
 
+var mostrar=store('setas-pontos')!=='0';
 var level=parseInt(store('setas-nivel'),10)||1,vidas,arrows,busy,svg=$('#board'),gridN=4;
 function diff(l){return l<=5?'Fácil':l<=15?'Médio':'Difícil';}
 function mk(tag,attrs,parent){var e=document.createElementNS(NS,tag);for(var k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
@@ -139,6 +146,24 @@ function iniciar(){
     a.ph=mk('path',{'class':'hit'},grp);a.pa=mk('path',{'class':'a'},grp);a.hd=mk('polygon',{'class':'h'},grp);
     draw(a,a.pts);
     grp.addEventListener('click',function(){tocar(a);});
+  });
+  pontos();
+}
+// pontinhos discretos: mostram até onde a seta vai andar antes de bater em outra
+function pontos(){
+  var occ={};
+  arrows.forEach(function(a){if(a.alive)a.cells.forEach(function(c){occ[key(c[0],c[1])]=a;});});
+  arrows.forEach(function(a){
+    if(a.dots&&a.dots.parentNode)a.dots.parentNode.removeChild(a.dots);
+    a.dots=null;if(!a.alive||!mostrar)return;
+    var pts=[],blocked=false;
+    for(var i=0;i<a.ray.length;i++){
+      var k=a.ray[i];if(occ[k]&&occ[k]!==a){blocked=true;break;}
+      var p=k.split(',');pts.push([+p[0]*C+C/2,+p[1]*C+C/2]);
+    }
+    if(!blocked||!pts.length)return;
+    a.dots=mk('g',{},a.el);
+    pts.forEach(function(q){mk('circle',{'class':'dot',cx:q[0],cy:q[1],r:0.5+gridN*0.06},a.dots);});
   });
 }
 function vidasUI(){var L=$('#lives');L.innerHTML='';for(var i=0;i<VIDAS;i++){var d=document.createElement('div');d.className='drop'+(i>=vidas?' off':'');L.appendChild(d);}}
@@ -171,7 +196,7 @@ function tocar(a){
   var hs=document.querySelectorAll('.hint');for(var i=0;i<hs.length;i++)hs[i].classList.remove('hint');
   var b=bloqueador(a);
   if(!b){
-    a.alive=false;a.el.style.pointerEvents='none';sair(a);
+    a.alive=false;a.el.style.pointerEvents='none';pontos();sair(a);
     if(!arrows.some(function(x){return x.alive;})){busy=true;setTimeout(venceu,1000);}
   }else{
     vidas--;vidasUI();
@@ -186,6 +211,9 @@ function venceu(){
 }
 function msg(t,b,fn){$('#mt').textContent=t;$('#mb').textContent=b;$('#mb').onclick=fn;$('#msg').classList.remove('hidden');}
 $('#hint').onclick=function(){if(busy)return;for(var i=0;i<arrows.length;i++){if(arrows[i].alive&&!bloqueador(arrows[i])){arrows[i].el.classList.add('hint');break;}}};
+function btnPontos(){$('#dots').className=mostrar?'':'off';}
+$('#dots').onclick=function(){mostrar=!mostrar;store('setas-pontos',mostrar?'1':'0');btnPontos();if(arrows)pontos();};
+btnPontos();
 $('#prev').onclick=function(){if(level>1){level--;iniciar();}};
 $('#next').onclick=function(){if(level<(parseInt(store('setas-max'),10)||1)+1){level++;iniciar();}};
 iniciar();
