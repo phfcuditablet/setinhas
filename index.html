@@ -118,7 +118,7 @@ function pathD(P){ // curvas suaves nos cantos
 function draw(a,P){
   if(P.length<2)return;
   var d=pathD(P);a.pa.setAttribute('d',d);a.ph.setAttribute('d',d);
-  var h=last(P),q=P[P.length-2],dx=h[0]-q[0],dy=h[1]-q[1],m=Math.hypot(dx,dy)||1;dx/=m;dy/=m;
+  var h=last(P),q=P[P.length-2];for(var k=P.length-2;k>=0;k--){q=P[k];if(dist(q,h)>=1.5)break;}var dx=h[0]-q[0],dy=h[1]-q[1],m=Math.hypot(dx,dy)||1;dx/=m;dy/=m;
   var b=[h[0]+dx,h[1]+dy],tip=[h[0]+dx*4.6,h[1]+dy*4.6];
   a.hd.setAttribute('points',tip+' '+(b[0]-dy*2.6)+','+(b[1]+dx*2.6)+' '+(b[0]+dy*2.6)+','+(b[1]-dx*2.6));
 }
@@ -147,15 +147,21 @@ function bloqueador(a){
     for(var j=0;j<b.cells.length;j++)if(a.ray.indexOf(key(b.cells[j][0],b.cells[j][1]))>=0)return b;}
   return null;
 }
-// a seta desliza seguindo o próprio rastro (cobrinha) até sair da tela
+// a seta desliza seguindo o rastro; ao passar da borda ela ondula (serpentina) até sumir
 function sair(a){
-  var P=a.pts.slice(),d=D[a.dir],Ls=plen(a.pts),h=last(P),ext=a.ray.length*C+Ls+2*C;
-  P.push([h[0]+d[0]*ext,h[1]+d[1]*ext]);
-  var T=plen(P),S=T-Ls,dur=Math.max(700,Math.min(2000,T*14)),t0=null;
+  var P=a.pts.slice(),d=D[a.dir],Ls=plen(a.pts),h=last(P),n=a.ray.length;
+  var x=h[0]+d[0]*(n*C+C/2),y=h[1]+d[1]*(n*C+C/2);
+  P.push([x,y]);
+  var th0=Math.atan2(d[1],d[0]),sg=((a.cells.length+a.dir)%2)?1:-1,tot=(Ls+5*C)*1.5;
+  for(var s=1;s<=tot;s+=1){
+    var ramp=Math.min(1,s/(1.5*C)),th=th0+sg*1.0*Math.sin(s/(2.2*C))*ramp;
+    x+=Math.cos(th);y+=Math.sin(th);P.push([x,y]);
+  }
+  var T=plen(P),S=T-Ls,dur=Math.max(900,Math.min(2400,T*14)),t0=null;
   function step(now){
     if(t0===null)t0=now;
-    var u=Math.min(1,(now-t0)/dur),s=S*u*u;
-    draw(a,slice(P,s,s+Ls));
+    var u=Math.min(1,(now-t0)/dur),e=S*(u*u*0.7+u*0.3);
+    draw(a,slice(P,e,e+Ls));
     if(u<1)requestAnimationFrame(step);else if(a.el.parentNode)a.el.parentNode.removeChild(a.el);
   }
   requestAnimationFrame(step);
