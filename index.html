@@ -161,7 +161,8 @@ function pontos(){
       var k=a.ray[i];if(occ[k]&&occ[k]!==a){blocked=true;break;}
       var p=k.split(',');pts.push([+p[0]*C+C/2,+p[1]*C+C/2]);
     }
-    if(!blocked||!pts.length)return;
+    if(!blocked)return;
+    if(!pts.length){var hp=last(a.pts);pts.push([hp[0]+D[a.dir][0]*7.2,hp[1]+D[a.dir][1]*7.2]);} // seta colada na outra
     a.dots=mk('g',{},a.el);
     pts.forEach(function(q){mk('circle',{'class':'dot',cx:q[0],cy:q[1],r:0.5+gridN*0.06},a.dots);});
   });
