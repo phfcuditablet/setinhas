@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Libere as Setas</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <button id="prev" aria-label="Nível anterior">‹</button>
+  <div class="title"><b id="lvl">Nível 1</b><span id="diff">Fácil</span></div>
+  <button id="next" aria-label="Próximo nível">›</button>
+</header>
+<div class="bar">
+  <div id="lives"></div>
+  <button id="hint" aria-label="Dica">💡</button>
+</div>
+<main><svg id="board" xmlns="http://www.w3.org/2000/svg"></svg></main>
+<div id="msg" class="hidden"><div><h2 id="mt"></h2><button id="mb"></button></div></div>
+<script src="game.js"></script>
+</body>
+</html>

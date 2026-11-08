@@ -1,0 +1,30 @@
+:root{--bg:#f5ecdc;--ink:#6f4e37;--drop:#4fa9f2;--bad:#d9534f}
+@media (prefers-color-scheme:dark){:root{--bg:#2b2118;--ink:#d9b99b}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;display:flex;flex-direction:column;
+padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:2px solid #0002}
+header button{background:none;border:0;font-size:40px;color:var(--ink);width:48px;cursor:pointer}
+.title{text-align:center;display:flex;flex-direction:column}
+.title b{font-size:28px;color:#b8733a}.title span{font-weight:700;color:#8e44ad}
+.bar{display:flex;justify-content:space-between;align-items:center;padding:12px 20px}
+#lives{display:flex;gap:10px}
+.drop{width:26px;height:34px;background:var(--drop);border-radius:50% 50% 50% 50%/65% 65% 38% 38%;transition:.3s}
+.drop.off{opacity:.15;transform:scale(.7)}
+#hint{background:none;border:0;font-size:30px;cursor:pointer}
+main{flex:1;display:flex;align-items:center;justify-content:center;padding:12px}
+#board{width:100%;max-width:560px;max-height:100%;aspect-ratio:1;overflow:visible;touch-action:manipulation}
+#board g{cursor:pointer}
+#board .a{fill:none;stroke:var(--ink);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+#board .h{fill:var(--ink)}
+#board .hit{fill:none;stroke:transparent;stroke-width:7;stroke-linecap:round;stroke-linejoin:round}
+#board g.go{transition:transform .7s ease-in,opacity .7s;opacity:0;pointer-events:none}
+#board g.bad .a{stroke:var(--bad)}#board g.bad .h{fill:var(--bad)}
+#board g.hint .a{stroke:#3a9d5d}#board g.hint .h{fill:#3a9d5d}
+#board g.shake{animation:sh .3s}
+@keyframes sh{25%{transform:translate(-1px,0)}75%{transform:translate(1px,0)}}
+#msg{position:fixed;inset:0;background:#000a;display:flex;align-items:center;justify-content:center}
+#msg.hidden{display:none}
+#msg>div{background:var(--bg);padding:28px 36px;border-radius:18px;text-align:center}
+#msg button{font-size:18px;padding:10px 26px;border:0;border-radius:12px;background:#b8733a;color:#fff;cursor:pointer}
