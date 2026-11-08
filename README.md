@@ -1,10 +1,7 @@
 # Libere as Setas
-
-Jogo de quebra-cabeça: toque em uma seta para ela deslizar para fora do tabuleiro na direção da ponta.
+Toque em uma seta para ela deslizar (como uma cobrinha flexível) para fora da tela na direção da ponta.
 Se houver outra seta no caminho, você perde uma gota (3 vidas). Todos os níveis têm solução.
+Funciona em computador e celular. Jogo inteiro no arquivo `index.html`.
 
-- Nível 1 começa com poucas setas; grade e quantidade crescem a cada nível.
-- 💡 mostra uma seta livre. Progresso salvo no navegador.
-
-## Rodar
-Abra `index.html` no navegador, ou publique no GitHub Pages (Settings → Pages → branch `main`, pasta `/root`).
+## Publicar no GitHub Pages
+Envie `index.html` (e `.nojekyll`) para a **raiz** do repositório → Settings → Pages → Branch `main` / `(root)`.

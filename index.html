@@ -3,8 +3,40 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f5ecdc">
 <title>Libere as Setas</title>
-<link rel="stylesheet" href="style.css">
+<style>
+:root{--bg:#f5ecdc;--ink:#6f4e37;--drop:#4fa9f2;--bad:#d9534f}
+@media (prefers-color-scheme:dark){:root{--bg:#2b2118;--ink:#d9b99b}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,sans-serif;display:flex;flex-direction:column;
+padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);user-select:none;-webkit-user-select:none}
+header{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:2px solid rgba(0,0,0,.12)}
+header button{background:none;border:0;font-size:40px;line-height:1;color:var(--ink);width:52px;height:48px;cursor:pointer}
+.title{text-align:center;display:flex;flex-direction:column}
+.title b{font-size:28px;color:#b8733a}.title span{font-weight:700;color:#8e44ad}
+.bar{display:flex;justify-content:space-between;align-items:center;padding:10px 20px}
+#lives{display:flex;gap:10px}
+.drop{width:24px;height:32px;background:var(--drop);border-radius:50% 50% 50% 50%/65% 65% 38% 38%;transition:.3s}
+.drop.off{opacity:.15;transform:scale(.7)}
+#hint{background:none;border:0;font-size:30px;cursor:pointer}
+main{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:8px 12px 16px}
+#board{width:min(100%,560px);height:auto;max-height:100%;touch-action:manipulation;overflow:visible}
+@supports (height:100dvh){html,body{height:100dvh}}
+#board g{cursor:pointer}
+.a{fill:none;stroke:var(--ink);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.h{fill:var(--ink)}
+.hit{fill:none;stroke:transparent;stroke-width:7;stroke-linecap:round;stroke-linejoin:round}
+g.bad .a{stroke:var(--bad)}g.bad .h{fill:var(--bad)}
+g.hint .a{stroke:#3a9d5d}g.hint .h{fill:#3a9d5d}
+g.shake{animation:sh .3s}
+@keyframes sh{25%{transform:translate(-1px,0)}75%{transform:translate(1px,0)}}
+#msg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:5}
+#msg.hidden{display:none}
+#msg>div{background:var(--bg);padding:26px 32px;border-radius:18px;text-align:center;margin:16px}
+#msg button{font-size:18px;padding:10px 26px;border:0;border-radius:12px;background:#b8733a;color:#fff;cursor:pointer}
+</style>
 </head>
 <body>
 <header>
@@ -12,12 +44,146 @@
   <div class="title"><b id="lvl">Nível 1</b><span id="diff">Fácil</span></div>
   <button id="next" aria-label="Próximo nível">›</button>
 </header>
-<div class="bar">
-  <div id="lives"></div>
-  <button id="hint" aria-label="Dica">💡</button>
-</div>
+<div class="bar"><div id="lives"></div><button id="hint" aria-label="Dica">💡</button></div>
 <main><svg id="board" xmlns="http://www.w3.org/2000/svg"></svg></main>
 <div id="msg" class="hidden"><div><h2 id="mt"></h2><button id="mb"></button></div></div>
-<script src="game.js"></script>
+<script>
+(function () {
+var NS = 'http://www.w3.org/2000/svg', D = [[0,-1],[1,0],[0,1],[-1,0]], C = 10, VIDAS = 3;
+function $(s){return document.querySelector(s);}
+function last(a){return a[a.length-1];}
+function rng(s){return function(){s|=0;s=s+0x6D2B79F5|0;var t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+function key(x,y){return x+','+y;}
+function store(k,v){try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v);}catch(e){return null;}}
+
+// Dificuldade: a grade e a quantidade de setas crescem a cada nível
+function params(l){
+  var n=Math.min(4+Math.floor((l-1)/3),13);
+  return {n:n,maxLen:Math.min(2+Math.floor(l/2),7),count:Math.min(2+Math.ceil(l*1.5),Math.floor(n*n/2.6))};
+}
+// Sempre solucionável: uma seta nova nunca ocupa o caminho de saída de outra
+function gerar(level){
+  var p=params(level),n=p.n,best=[];
+  for(var at=0;at<30;at++){
+    var r=rng(level*7919+at),rays={},used={},arrows=[];
+    for(var k=0;k<p.count;k++){
+      for(var t=0;t<150;t++){
+        var sx=Math.floor(r()*n),sy=Math.floor(r()*n);
+        if(used[key(sx,sy)]||rays[key(sx,sy)])continue;
+        var len=2+Math.floor(r()*(p.maxLen-1)),cells=[[sx,sy]],own={};own[key(sx,sy)]=1;
+        var dir=0;
+        for(var i=1;i<len;i++){
+          var c=last(cells),opts=[0,1,2,3].sort(function(){return r()-.5;}).filter(function(d){
+            var x=c[0]+D[d][0],y=c[1]+D[d][1],q=key(x,y);
+            return x>=0&&y>=0&&x<n&&y<n&&!used[q]&&!rays[q]&&!own[q];});
+          if(!opts.length)break;
+          dir=opts[0];cells.push([c[0]+D[dir][0],c[1]+D[dir][1]]);own[key(last(cells)[0],last(cells)[1])]=1;
+        }
+        if(cells.length<2)continue;
+        var h=last(cells),ray=[],x=h[0]+D[dir][0],y=h[1]+D[dir][1],bad=false;
+        while(x>=0&&y>=0&&x<n&&y<n){if(own[key(x,y)])bad=true;ray.push(key(x,y));x+=D[dir][0];y+=D[dir][1];}
+        if(bad)continue;
+        cells.forEach(function(c){used[key(c[0],c[1])]=1;});ray.forEach(function(c){rays[c]=1;});
+        arrows.push({cells:cells,dir:dir,ray:ray});break;
+      }
+    }
+    if(arrows.length>best.length)best=arrows;
+    if(best.length>=p.count)break;
+  }
+  return {n:n,arrows:best};
+}
+
+// ---------- geometria das setas flexíveis ----------
+function dist(p,q){return Math.hypot(q[0]-p[0],q[1]-p[1]);}
+function plen(P){var s=0;for(var i=0;i<P.length-1;i++)s+=dist(P[i],P[i+1]);return s;}
+function slice(P,a,b){ // trecho do caminho entre as distâncias a e b
+  var out=[],acc=0;
+  for(var i=0;i<P.length-1;i++){
+    var p=P[i],q=P[i+1],l=dist(p,q),s0=acc,s1=acc+l;acc=s1;
+    if(l===0||s1<=a||s0>=b)continue;
+    var t0=Math.max(a,s0),t1=Math.min(b,s1);
+    var f=function(t){return [p[0]+(q[0]-p[0])*(t-s0)/l,p[1]+(q[1]-p[1])*(t-s0)/l];};
+    if(!out.length)out.push(f(t0));out.push(f(t1));
+  }
+  return out;
+}
+function pathD(P){ // curvas suaves nos cantos
+  if(P.length<2)return '';
+  var d='M'+P[0][0]+','+P[0][1];
+  if(P.length===2)return d+'L'+P[1][0]+','+P[1][1];
+  d+='L'+(P[0][0]+P[1][0])/2+','+(P[0][1]+P[1][1])/2;
+  for(var i=1;i<P.length-1;i++)d+='Q'+P[i][0]+','+P[i][1]+' '+(P[i][0]+P[i+1][0])/2+','+(P[i][1]+P[i+1][1])/2;
+  return d+'L'+last(P)[0]+','+last(P)[1];
+}
+function draw(a,P){
+  if(P.length<2)return;
+  var d=pathD(P);a.pa.setAttribute('d',d);a.ph.setAttribute('d',d);
+  var h=last(P),q=P[P.length-2],dx=h[0]-q[0],dy=h[1]-q[1],m=Math.hypot(dx,dy)||1;dx/=m;dy/=m;
+  var b=[h[0]+dx,h[1]+dy],tip=[h[0]+dx*4.6,h[1]+dy*4.6];
+  a.hd.setAttribute('points',tip+' '+(b[0]-dy*2.6)+','+(b[1]+dx*2.6)+' '+(b[0]+dy*2.6)+','+(b[1]-dx*2.6));
+}
+
+var level=parseInt(store('setas-nivel'),10)||1,vidas,arrows,busy,svg=$('#board'),gridN=4;
+function diff(l){return l<=5?'Fácil':l<=15?'Médio':'Difícil';}
+function mk(tag,attrs,parent){var e=document.createElementNS(NS,tag);for(var k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+
+function iniciar(){
+  var g=gerar(level);arrows=g.arrows;gridN=g.n;vidas=VIDAS;busy=false;
+  store('setas-nivel',level);
+  $('#lvl').textContent='Nível '+level;$('#diff').textContent=diff(level);
+  $('#msg').classList.add('hidden');vidasUI();
+  svg.innerHTML='';svg.setAttribute('viewBox','-1 -1 '+(g.n*C+2)+' '+(g.n*C+2));
+  arrows.forEach(function(a){
+    a.pts=a.cells.map(function(c){return [c[0]*C+C/2,c[1]*C+C/2];});
+    var grp=mk('g',{},svg);a.el=grp;a.alive=true;
+    a.ph=mk('path',{'class':'hit'},grp);a.pa=mk('path',{'class':'a'},grp);a.hd=mk('polygon',{'class':'h'},grp);
+    draw(a,a.pts);
+    grp.addEventListener('click',function(){tocar(a);});
+  });
+}
+function vidasUI(){var L=$('#lives');L.innerHTML='';for(var i=0;i<VIDAS;i++){var d=document.createElement('div');d.className='drop'+(i>=vidas?' off':'');L.appendChild(d);}}
+function bloqueador(a){
+  for(var i=0;i<arrows.length;i++){var b=arrows[i];if(b===a||!b.alive)continue;
+    for(var j=0;j<b.cells.length;j++)if(a.ray.indexOf(key(b.cells[j][0],b.cells[j][1]))>=0)return b;}
+  return null;
+}
+// a seta desliza seguindo o próprio rastro (cobrinha) até sair da tela
+function sair(a){
+  var P=a.pts.slice(),d=D[a.dir],Ls=plen(a.pts),h=last(P),ext=a.ray.length*C+Ls+2*C;
+  P.push([h[0]+d[0]*ext,h[1]+d[1]*ext]);
+  var T=plen(P),S=T-Ls,dur=Math.max(700,Math.min(2000,T*14)),t0=null;
+  function step(now){
+    if(t0===null)t0=now;
+    var u=Math.min(1,(now-t0)/dur),s=S*u*u;
+    draw(a,slice(P,s,s+Ls));
+    if(u<1)requestAnimationFrame(step);else if(a.el.parentNode)a.el.parentNode.removeChild(a.el);
+  }
+  requestAnimationFrame(step);
+}
+function tocar(a){
+  if(busy||!a.alive)return;
+  var hs=document.querySelectorAll('.hint');for(var i=0;i<hs.length;i++)hs[i].classList.remove('hint');
+  var b=bloqueador(a);
+  if(!b){
+    a.alive=false;a.el.style.pointerEvents='none';sair(a);
+    if(!arrows.some(function(x){return x.alive;})){busy=true;setTimeout(venceu,1000);}
+  }else{
+    vidas--;vidasUI();
+    a.el.classList.add('shake','bad');b.el.classList.add('bad');
+    setTimeout(function(){a.el.classList.remove('shake','bad');b.el.classList.remove('bad');},450);
+    if(vidas<=0){busy=true;setTimeout(function(){msg('Sem vidas 💧','Tentar de novo',iniciar);},500);}
+  }
+}
+function venceu(){
+  store('setas-max',Math.max(level,parseInt(store('setas-max'),10)||1));
+  msg('Nível '+level+' concluído! 🎉','Próximo nível',function(){level++;iniciar();});
+}
+function msg(t,b,fn){$('#mt').textContent=t;$('#mb').textContent=b;$('#mb').onclick=fn;$('#msg').classList.remove('hidden');}
+$('#hint').onclick=function(){if(busy)return;for(var i=0;i<arrows.length;i++){if(arrows[i].alive&&!bloqueador(arrows[i])){arrows[i].el.classList.add('hint');break;}}};
+$('#prev').onclick=function(){if(level>1){level--;iniciar();}};
+$('#next').onclick=function(){if(level<(parseInt(store('setas-max'),10)||1)+1){level++;iniciar();}};
+iniciar();
+})();
+</script>
 </body>
 </html>
