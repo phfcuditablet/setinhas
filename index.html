@@ -37,6 +37,9 @@ g.hint .a{stroke:#3a9d5d}g.hint .h{fill:#3a9d5d}
 g .dot{fill:var(--ink);opacity:.5;pointer-events:none}
 g.shake{animation:sh .3s}
 @keyframes sh{25%{transform:translate(-1px,0)}75%{transform:translate(1px,0)}}
+footer{display:flex;justify-content:center;padding:4px 0 10px}
+footer a{width:48px;height:48px;border-radius:50%;background:var(--ink);color:var(--bg);font:700 26px/46px system-ui,sans-serif;text-align:center;text-decoration:none;box-shadow:0 3px 0 rgba(0,0,0,.25)}
+footer a:active{transform:translateY(2px)}
 #msg{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:5}
 #msg.hidden{display:none}
 #msg>div{background:var(--bg);padding:26px 32px;border-radius:18px;text-align:center;margin:16px}
@@ -51,6 +54,7 @@ g.shake{animation:sh .3s}
 </header>
 <div class="bar"><div id="lives"></div><div id="tools"><button id="dots" aria-label="Ativar ou desativar pontinhos" title="Pontinhos"><span>•••</span></button><button id="hint" aria-label="Dica">💡</button></div></div>
 <main><svg id="board" xmlns="http://www.w3.org/2000/svg"></svg></main>
+<footer><a href="https://phfcuditablet.github.io/jogos/" aria-label="Voltar para a página dos jogos" title="Voltar">←</a></footer>
 <div id="msg" class="hidden"><div><h2 id="mt"></h2><button id="mb"></button></div></div>
 <script>
 (function () {
